@@ -1,0 +1,10 @@
+.container {
+    aspect-ratio: 1 / 1;
+    inline-size: 100%;
+    border: 1px solid white;
+}
+
+.container > canvas {
+    inline-size: 100%;
+    block-size: 100%;
+}
