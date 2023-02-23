@@ -27,14 +27,15 @@ function UnitCircle () {
 
         gl.bindVertexArray( vertex_array_object );          // Make it the one we're currently working with
 
-        /* position */
-        const position_data = [ ... createGrid(), ... createCircle( 100, 0.8 ) ];
-        const position_buffer = gl.createBuffer();
-
-        gl.bindBuffer( gl.ARRAY_BUFFER, position_buffer );
-        gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( position_data ), gl.STATIC_DRAW );
-
+        /* location & buffer */
         const position_attribute_location = gl.getAttribLocation( program, "a_position" );
+        const color_attribute_location = gl.getAttribLocation( program, "a_color" );
+
+        const position_buffer = gl.createBuffer();
+        const color_buffer = gl.createBuffer();
+
+        const position_data = [];
+        const color_data = [];
 
         const position_size = 2;          // 2 components per iteration
         const position_type = gl.FLOAT;   // the data is 32bit floats
@@ -42,37 +43,101 @@ function UnitCircle () {
         const position_stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
         const position_offset = 0;        // start at the beginning of the buffer
 
-        gl.enableVertexAttribArray( position_attribute_location );
-        gl.vertexAttribPointer( position_attribute_location, position_size, position_type, position_normalize, position_stride, position_offset );
-
-        /* color */
-        const color_data = createColor( 112 );
-        const color_buffer = gl.createBuffer();
-
-        gl.bindBuffer( gl.ARRAY_BUFFER, color_buffer );
-        gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( color_data ), gl.STATIC_DRAW );
-
-        const color_attribute_location = gl.getAttribLocation( program, "a_color" );
-
         const color_size = 4;
         const color_type = gl.FLOAT;
         const color_normalize = false;
         const color_stride = 0;
         const color_offset = 0;
 
-        gl.enableVertexAttribArray( color_attribute_location );
-        gl.vertexAttribPointer( color_attribute_location, color_size, color_type, color_normalize, color_stride, color_offset );
-
         /* draw */
-        const draw = _ => {
+        const draw = ( horizontal_pixel_count, vertical_pixel_count ) => {
 
+            /* base */
             gl.viewport( 0, 0, gl.canvas.width, gl.canvas.height );
             gl.clearColor( 0, 0, 0, 1 );
             gl.clear( gl.COLOR_BUFFER_BIT );
             gl.useProgram( program );
 
+            /* the position of the grid */
+            position_data.push(
+                - 1, - 0.8, 1, - 0.8,
+                - 1, 0, 1, 0,
+                - 1, 0.8, 1, 0.8,
+                - 0.8, - 1, - 0.8, 1,
+                0, - 1, 0, 1,
+                0.8, - 1, 0.8, 1,
+            );
+
+            /* the position of the ring */
+            const angle_step = Math.PI * 2 / 100;
+            const offset_x = 1 / horizontal_pixel_count * 2;
+            const offset_y = 1 / vertical_pixel_count * 2;
+
+            for ( let i = 0; i < 100; i ++ ) {
+
+                const angle = i * angle_step;
+                const sin = Math.sin( angle );
+                const cos = Math.cos( angle );
+
+                position_data.push( sin * 0.8, cos * 0.8 );
+
+            }
+
+            for ( let i = 0; i < 100; i ++ ) {
+
+                const angle = i * angle_step;
+                const sin = Math.sin( angle );
+                const cos = Math.cos( angle );
+
+                position_data.push( sin * 0.8 - offset_x * Math.sign( sin ), cos * 0.8 - offset_y * Math.sign( cos ) );
+
+            }
+
+            /* the position of the anchor */
+            for ( let i = 0; i < 20; i ++ ) {
+
+                const angle = i * Math.PI * 2 / 20;
+
+                const sin = Math.sin( angle ) * 0.065 + 0;
+                const cos = Math.cos( angle ) * 0.065 + 0.8;
+
+                const new_sin = sin * Math.cos( Math.PI / 2 ) + cos * Math.sin( Math.PI / 2 );
+                const new_cos = - sin * Math.sin( Math.PI / 2 ) + cos * Math.cos( Math.PI / 2 );
+
+                position_data.push( new_sin, new_cos );
+
+            }
+
+            /* the color of the grid */
+            for ( let i = 0; i < 12; i ++ ) color_data.push( 0.2, 0.2, 0.2, 1 );
+
+            /* the color of the ring */
+            for ( let i = 0; i < 200; i ++ ) color_data.push( Math.random() * 0.5 + 0.5, Math.random() * 0.5 + 0.5, 1, 1 );
+
+            /* the color of the anchor */
+            for ( let i = 0; i < 20; i ++ ) color_data.push( Math.random() * 0.5 + 0.5, Math.random() * 0.5 + 0.5, 1, 1 );
+
+            /* bind position data */
+            gl.bindBuffer( gl.ARRAY_BUFFER, position_buffer );
+            gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( position_data ), gl.STATIC_DRAW );
+
+            gl.enableVertexAttribArray( position_attribute_location );
+            gl.vertexAttribPointer( position_attribute_location, position_size, position_type, position_normalize, position_stride, position_offset );
+
+            /* bind color data */
+            gl.bindBuffer( gl.ARRAY_BUFFER, color_buffer );
+            gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( color_data ), gl.STATIC_DRAW );
+
+            gl.enableVertexAttribArray( color_attribute_location );
+            gl.vertexAttribPointer( color_attribute_location, color_size, color_type, color_normalize, color_stride, color_offset );
+
+            /*  */
             gl.drawArrays( gl.LINES, 0, 12 );       // type, point offset, point count
+
             gl.drawArrays( gl.LINE_LOOP, 12, 100 ); // type, point offset, point count
+            gl.drawArrays( gl.LINE_LOOP, 112, 100 ); // type, point offset, point count
+
+            gl.drawArrays( gl.LINE_LOOP, 212, 20 ); // type, point offset, point count
 
         };
 
@@ -91,7 +156,7 @@ function UnitCircle () {
 /**
  * 自动更新<canvas>的width和height。
  * @param { HTMLCanvasElement } canvas - <canvas>。
- * @param { Function } [ handleResizeEvent ] - （可选）回调函数，它的执行时机是<canvas>的width和height更新完毕之后。
+ * @param { Function } [ handleResizeEvent ] - （可选）回调函数，它会在<canvas>更新完毕之后被执行，并接收2个入参，依次是canvas.width和canvas.height。
  */
 function updateCanvasSize ( canvas, handleResizeEvent ) {
 
@@ -119,7 +184,10 @@ function updateCanvasSize ( canvas, handleResizeEvent ) {
 
         }
 
-        handleResizeEvent?.();
+        const horizontal_pixel_count = canvas.width;
+        const vertical_pixel_count = canvas.height;
+
+        handleResizeEvent?.( horizontal_pixel_count, vertical_pixel_count );
 
     }
 
@@ -175,75 +243,6 @@ function createProgram ( gl, vertex_shader, fragment_shader ) {
     gl.deleteProgram( program );
 
     throw error;
-
-}
-
-/**
- * 创建网格。
- * @returns { number[] } - 网格的二维节点坐标数组。
- */
-function createGrid () {
-
-    const position_data = [
-        - 1, - 0.8, 1, - 0.8,
-        - 1, 0, 1, 0,
-        - 1, 0.8, 1, 0.8,
-        - 0.8, - 1, - 0.8, 1,
-        0, - 1, 0, 1,
-        0.8, - 1, 0.8, 1,
-    ];
-
-    return position_data;
-
-}
-
-/**
- * 创建一个圆。
- * @param { number } segment_count - 分段数。
- * @param { number } ratio - 倍率，比如当ratio为1时将会创建单位圆。
- * @returns { number[] } - 单位圆的二维节点坐标数组。
- */
-function createCircle ( segment_count, ratio ) {
-
-    const step = Math.PI * 2 / segment_count;
-
-    const position_data = [];
-
-    for ( let i = 0; i < segment_count; i ++ ) {
-
-        const angle = i * step;
-        const x = Math.sin( angle ) * ratio;
-        const y = Math.cos( angle ) * ratio;
-
-        position_data.push( x, y );
-
-    }
-
-    return position_data;
-
-}
-
-/**
- * 创建颜色。
- * @param { number } count - 数量。
- * @returns { number[] } - rgba颜色数组。
- */
-function createColor ( count ) {
-
-    const color_data = [];
-
-    for ( let i = 0; i < count; i ++ ) {
-
-        const r = Math.random() * 0.5 + 0.5;
-        const g = Math.random() * 0.5 + 0.5;
-        const b = 1;
-        const a = 1;
-
-        color_data.push( r, g, b, a );
-
-    }
-
-    return color_data;
 
 }
 
