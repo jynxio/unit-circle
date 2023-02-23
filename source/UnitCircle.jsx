@@ -45,8 +45,23 @@ function UnitCircle () {
         gl.enableVertexAttribArray( position_attribute_location );
         gl.vertexAttribPointer( position_attribute_location, position_size, position_type, position_normalize, position_stride, position_offset );
 
-        /*  */
-        const color_uniform_location = gl.getUniformLocation( program, "u_color" );
+        /* color */
+        const color_data = createColor( 112 );
+        const color_buffer = gl.createBuffer();
+
+        gl.bindBuffer( gl.ARRAY_BUFFER, color_buffer );
+        gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( color_data ), gl.STATIC_DRAW );
+
+        const color_attribute_location = gl.getAttribLocation( program, "a_color" );
+
+        const color_size = 4;
+        const color_type = gl.FLOAT;
+        const color_normalize = false;
+        const color_stride = 0;
+        const color_offset = 0;
+
+        gl.enableVertexAttribArray( color_attribute_location );
+        gl.vertexAttribPointer( color_attribute_location, color_size, color_type, color_normalize, color_stride, color_offset );
 
         /* draw */
         const draw = _ => {
@@ -56,11 +71,8 @@ function UnitCircle () {
             gl.clear( gl.COLOR_BUFFER_BIT );
             gl.useProgram( program );
 
-            gl.uniform4fv( color_uniform_location, [ 0.2, 0.2, 0.2, 1 ] ); // reset color
-            gl.drawArrays( gl.LINES, 0, 12 );                              // type, point offset, point count
-
-            gl.uniform4fv( color_uniform_location, [ 0.8, 0.8, 1, 1 ] ); // reset color
-            gl.drawArrays( gl.LINE_LOOP, 12, 100 );                      // type, point offset, point count
+            gl.drawArrays( gl.LINES, 0, 12 );       // type, point offset, point count
+            gl.drawArrays( gl.LINE_LOOP, 12, 100 ); // type, point offset, point count
 
         };
 
@@ -211,5 +223,28 @@ function createCircle ( segment_count, ratio ) {
 
 }
 
+/**
+ * 创建颜色。
+ * @param { number } count - 数量。
+ * @returns { number[] } - rgba颜色数组。
+ */
+function createColor ( count ) {
+
+    const color_data = [];
+
+    for ( let i = 0; i < count; i ++ ) {
+
+        const r = Math.random() * 0.5 + 0.5;
+        const g = Math.random() * 0.5 + 0.5;
+        const b = 1;
+        const a = 1;
+
+        color_data.push( r, g, b, a );
+
+    }
+
+    return color_data;
+
+}
 
 export default UnitCircle;
