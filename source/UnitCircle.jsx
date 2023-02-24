@@ -162,22 +162,17 @@ function updateCanvasSize ( canvas, handleResizeEvent ) {
 
     const observer = new ResizeObserver( callback );
 
-    observer.observe( canvas, { box: "device-pixel-content-box" } );
+    observer.observe( canvas, { box: "content-box" } ); // Safari不支持device-pixel-content-box
 
     function callback ( entries ) {
 
         for ( const entry of entries ) {
 
-            const software_pixel_width = entry.devicePixelContentBoxSize[ 0 ].inlineSize;
-            const software_pixel_height = entry.devicePixelContentBoxSize[ 0 ].blockSize;
+            const software_pixel_width = entry.contentBoxSize[ 0 ].inlineSize; // Safari不支持devicePixelContentBoxSize
+            const software_pixel_height = entry.contentBoxSize[ 0 ].blockSize; // Safari不支持devicePixelContentBoxSize
 
-            canvas.width = software_pixel_width;
-            canvas.height = software_pixel_width;
-
-            continue; // MacOS使用👆 Windows使用👇 这是为什么？
-
-            const hardware_pixel_width = Math.round( software_pixel_width * globalThis.devicePixelRatio / 2 );
-            const hardware_pixel_height = Math.round( software_pixel_height * globalThis.devicePixelRatio / 2 );
+            const hardware_pixel_width = Math.round( software_pixel_width * globalThis.devicePixelRatio );
+            const hardware_pixel_height = Math.round( software_pixel_height * globalThis.devicePixelRatio );
 
             canvas.width = hardware_pixel_width;
             canvas.height = hardware_pixel_height;
