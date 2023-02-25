@@ -1,243 +1,218 @@
-import vertex_shader_source from "./glsl/vertex.glsl?raw";
-import fragment_shader_source from "./glsl/fragment.glsl?raw";
+import updateCanvasSize from "./helper/updateCanvasSize";
+import * as two from "./two";
 
 import style from "./UnitCircle.module.css";
 
-import { onMount } from "solid-js";
+import { createSignal, createEffect, onMount } from "solid-js";
 
 function UnitCircle () {
 
+    /* ref */
     let canvas;
 
+    /* signal */
+    const [ getRadian, setRadian ] = createSignal( 0 );
+
+    /* closure */
+    let is_move_enabled = false;
+    let is_wheel_enabled = false;
+
+    let base_x, base_y;
+    let radian_snapshot;
+
+    /* life cycle */
     onMount( _ => {
 
-        /* gl */
-        const gl = canvas.getContext( "webgl2" );
+        /* renderer */
+        const renderer = new two.Renderer( { canvas } );
 
-        if ( ! gl ) throw new Error( "It doesn't support webgl2" );
+        /* grid */
+        const line_1 = new two.Polyline( { positions: [ - 0.8, - 1, - 0.8, 1 ], color: [ 0, 0, 0, 0.8 ] } );
+        const line_2 = new two.Polyline( { positions: [ - 0, - 1, 0, 1 ], color: [ 0, 0, 0, 0.8 ] } );
+        const line_3 = new two.Polyline( { positions: [ 0.8, - 1, 0.8, 1 ], color: [ 0, 0, 0, 0.8 ] } );
+        const line_4 = new two.Polyline( { positions: [ - 1, - 0.8, 1, - 0.8 ], color: [ 0, 0, 0, 0.8 ] } );
+        const line_5 = new two.Polyline( { positions: [ - 1, 0, 1, 0 ], color: [ 0, 0, 0, 0.8 ] } );
+        const line_6 = new two.Polyline( { positions: [ - 1, 0.8, 1, 0.8 ], color: [ 0, 0, 0, 0.8 ] } );
 
-        /* shader and program */
-        const vertex_shader = createShader( gl, gl.VERTEX_SHADER, vertex_shader_source );
-        const fragment_shader = createShader( gl, gl.FRAGMENT_SHADER, fragment_shader_source );
+        /* ring */
+        const ring = new two.Ring( { center: [ 0, 0 ], radius: 0.8, segmentCount: 256, color: [ 0, 0, 1, 0.6 ] } );
 
-        const program = createProgram( gl, vertex_shader, fragment_shader );
+        /* anchor */
+        const anchor_border = new two.Ring( { center: [ 0, 0.8 ], radius: 0.065, segmentCount: 32, color: [ 1, 1, 1, 1 ] } );
+        const anchor_content = new two.Circle( { center: [ 0, 0.8 ], radius: 0.065, segmentCount: 32, color: [ 0, 0, 0, 1 ] } );
 
-        /* vertex array object */
-        const vertex_array_object = gl.createVertexArray(); // Create a vertex array object (attribute state)
+        /* render */
+        const render = _ => renderer.render( [ anchor_content, line_1, line_2, line_3, line_4, line_5, line_6, ring, anchor_border ] );
 
-        gl.bindVertexArray( vertex_array_object );          // Make it the one we're currently working with
+        /* observe */
+        updateCanvasSize( canvas, canvas => render() )
 
-        /* location & buffer */
-        const position_attribute_location = gl.getAttribLocation( program, "a_position" );
-        const color_attribute_location = gl.getAttribLocation( program, "a_color" );
+        /* effect */
+        createEffect( _ => {
 
-        const position_buffer = gl.createBuffer();
-        const color_buffer = gl.createBuffer();
+            const radian = getRadian();
+            const rotation = [ Math.sin( radian ), Math.cos( radian ) ];
 
-        const position_data = [];
-        const color_data = [];
+            anchor_border.setRotation( [ ... rotation ] );
+            anchor_content.setRotation( [ ... rotation ] );
 
-        const position_size = 2;          // 2 components per iteration
-        const position_type = gl.FLOAT;   // the data is 32bit floats
-        const position_normalize = false; // don't normalize the data
-        const position_stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
-        const position_offset = 0;        // start at the beginning of the buffer
+            render();
 
-        const color_size = 4;
-        const color_type = gl.FLOAT;
-        const color_normalize = false;
-        const color_stride = 0;
-        const color_offset = 0;
+        } );
 
-        /* draw */
-        const draw = ( horizontal_pixel_count, vertical_pixel_count ) => {
+        /* animation */
+        let is_blink = false;
+        let prev_time = performance.now();
 
-            /* base */
-            gl.viewport( 0, 0, gl.canvas.width, gl.canvas.height );
-            gl.clearColor( 0, 0, 0, 1 );
-            gl.clear( gl.COLOR_BUFFER_BIT );
-            gl.useProgram( program );
+        requestAnimationFrame( function loop () {
 
-            /* the position of the grid */
-            position_data.push(
-                - 1, - 0.8, 1, - 0.8,
-                - 1, 0, 1, 0,
-                - 1, 0.8, 1, 0.8,
-                - 0.8, - 1, - 0.8, 1,
-                0, - 1, 0, 1,
-                0.8, - 1, 0.8, 1,
-            );
+            requestAnimationFrame( loop );
 
-            /* the position of the ring */
-            const angle_step = Math.PI * 2 / 100;
-            const offset_x = 1 / horizontal_pixel_count * 2;
-            const offset_y = 1 / vertical_pixel_count * 2;
+            const next_time = performance.now();
 
-            for ( let i = 0; i < 100; i ++ ) {
+            if ( next_time - prev_time < 600 ) return;
 
-                const angle = i * angle_step;
-                const sin = Math.sin( angle );
-                const cos = Math.cos( angle );
+            is_blink = ! is_blink;
+            prev_time = next_time;
 
-                position_data.push( sin * 0.8, cos * 0.8 );
+            anchor_content.setColor( is_blink ? [ 0.1, 0.1, 0.3, 1 ] : [ 0, 0, 0, 1 ] );
 
-            }
+            render();
 
-            for ( let i = 0; i < 100; i ++ ) {
-
-                const angle = i * angle_step;
-                const sin = Math.sin( angle );
-                const cos = Math.cos( angle );
-
-                position_data.push( sin * 0.8 - offset_x * Math.sign( sin ), cos * 0.8 - offset_y * Math.sign( cos ) );
-
-            }
-
-            /* the position of the anchor */
-            for ( let i = 0; i < 20; i ++ ) {
-
-                const angle = i * Math.PI * 2 / 20;
-
-                const sin = Math.sin( angle ) * 0.065 + 0;
-                const cos = Math.cos( angle ) * 0.065 + 0.8;
-
-                const new_sin = sin * Math.cos( Math.PI / 2 ) + cos * Math.sin( Math.PI / 2 );
-                const new_cos = - sin * Math.sin( Math.PI / 2 ) + cos * Math.cos( Math.PI / 2 );
-
-                position_data.push( new_sin, new_cos );
-
-            }
-
-            /* the color of the grid */
-            for ( let i = 0; i < 12; i ++ ) color_data.push( 0.2, 0.2, 0.2, 1 );
-
-            /* the color of the ring */
-            for ( let i = 0; i < 200; i ++ ) color_data.push( Math.random() * 0.5 + 0.5, Math.random() * 0.5 + 0.5, 1, 1 );
-
-            /* the color of the anchor */
-            for ( let i = 0; i < 20; i ++ ) color_data.push( Math.random() * 0.5 + 0.5, Math.random() * 0.5 + 0.5, 1, 1 );
-
-            /* bind position data */
-            gl.bindBuffer( gl.ARRAY_BUFFER, position_buffer );
-            gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( position_data ), gl.STATIC_DRAW );
-
-            gl.enableVertexAttribArray( position_attribute_location );
-            gl.vertexAttribPointer( position_attribute_location, position_size, position_type, position_normalize, position_stride, position_offset );
-
-            /* bind color data */
-            gl.bindBuffer( gl.ARRAY_BUFFER, color_buffer );
-            gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( color_data ), gl.STATIC_DRAW );
-
-            gl.enableVertexAttribArray( color_attribute_location );
-            gl.vertexAttribPointer( color_attribute_location, color_size, color_type, color_normalize, color_stride, color_offset );
-
-            /*  */
-            gl.drawArrays( gl.LINES, 0, 12 );       // type, point offset, point count
-
-            gl.drawArrays( gl.LINE_LOOP, 12, 100 ); // type, point offset, point count
-            gl.drawArrays( gl.LINE_LOOP, 112, 100 ); // type, point offset, point count
-
-            gl.drawArrays( gl.LINE_LOOP, 212, 20 ); // type, point offset, point count
-
-        };
-
-        updateCanvasSize( canvas, draw );
+        } );
 
     } );
 
     return (
         <div class={ style.container }>
-            <canvas ref={ canvas }></canvas>
+            <canvas
+                ref={ canvas }
+                onWheel={ handleWheelEvent }
+                onPointerUp={ handlePointerUpEvent }
+                onPointerDown={ handlePointerDownEvent }
+                onPointerMove={ handlePointerMoveEvent }
+                onPointerEnter={ handlePointerEnterEvent }
+                onPointerLeave={ handlePointerLeaveEvent }
+            ></canvas>
         </div>
     );
 
-}
+    /* event handler */
+        function handlePointerEnterEvent () {
 
-/**
- * 自动更新<canvas>的width和height。
- * @param { HTMLCanvasElement } canvas - <canvas>。
- * @param { Function } [ handleResizeEvent ] - （可选）回调函数，它会在<canvas>更新完毕之后被执行，并接收2个入参，依次是canvas.width和canvas.height。
- */
-function updateCanvasSize ( canvas, handleResizeEvent ) {
-
-    const observer = new ResizeObserver( callback );
-
-    observer.observe( canvas, { box: "content-box" } ); // Safari不支持device-pixel-content-box
-
-    function callback ( entries ) {
-
-        for ( const entry of entries ) {
-
-            const software_pixel_width = entry.contentBoxSize[ 0 ].inlineSize; // Safari不支持devicePixelContentBoxSize
-            const software_pixel_height = entry.contentBoxSize[ 0 ].blockSize; // Safari不支持devicePixelContentBoxSize
-
-            const hardware_pixel_width = Math.round( software_pixel_width * globalThis.devicePixelRatio );
-            const hardware_pixel_height = Math.round( software_pixel_height * globalThis.devicePixelRatio );
-
-            canvas.width = hardware_pixel_width;
-            canvas.height = hardware_pixel_height;
+            is_move_enabled = false;
+            is_wheel_enabled = true;
 
         }
 
-        const horizontal_pixel_count = canvas.width;
-        const vertical_pixel_count = canvas.height;
+    function handlePointerLeaveEvent ( event ) {
 
-        handleResizeEvent?.( horizontal_pixel_count, vertical_pixel_count );
+        is_move_enabled = false;
+        is_wheel_enabled = false;
+
+    }
+
+    function handlePointerUpEvent ( event ) {
+
+        is_move_enabled = false;
+        is_wheel_enabled = true;
+
+    }
+
+    function handlePointerDownEvent ( event ) {
+
+        is_move_enabled = true;
+        is_wheel_enabled = false;
+
+        radian_snapshot = getRadian();
+        [ base_x, base_y ] = [ event.clientX, event.clientY ];
+
+    }
+
+    function handlePointerMoveEvent ( event ) {
+
+        if ( ! is_move_enabled ) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const origin_position = [ ( rect.right + rect.left ) / 2, ( rect.top + rect.bottom ) / 2 ];
+        const base_position = [ base_x, base_y ];
+        const next_position = [ event.clientX, event.clientY ];
+
+        const vector_a = [ base_position[ 0 ] - origin_position[ 0 ], origin_position[ 1 ] - base_position[ 1 ] ];
+        const vector_b = [ next_position[ 0 ] - origin_position[ 0 ], origin_position[ 1 ] - next_position[ 1 ] ];
+
+        const delta_degree = calculateClockwiseAngle( vector_a, vector_b );
+
+        setRadian( delta_degree / 180 * Math.PI + radian_snapshot );
+
+    }
+
+    function handleWheelEvent ( event ) {
+
+        event.stopPropagation();
+
+        if ( ! is_wheel_enabled ) return;
+
+        setRadian( getRadian() + Math.sign( event.deltaY ) * Math.PI / 180 );
 
     }
 
 }
 
 /**
- * 创建vertex或fragment着色器。
- * @param { WebGL2RenderingContext } gl - WebGL2的上下文。
- * @param { number } type - gl.VERTEX_SHADER或gl.FRAGMENT_SHADER。
- * @param { string } source - 着色器的内容。
- * @returns { WebGLShader } - 若编译成功，则返回WebGLShader实例，否则抛出一个错误。
+ * 计算平面向量A到平面向量B的顺时针角度。
+ * @param { number[] } v_a - 如[x, y]。
+ * @param { number[] } v_b - 如[x, y]。
+ * @returns { number } - 角度，单位为度，值域为[0, 360)。
  */
-function createShader( gl, type, source ) {
+function calculateClockwiseAngle ( v_a, v_b ) {
 
-    const shader = gl.createShader( type );
+    v_a = [ ... v_a ];
+    v_b = [ ... v_b ];
 
-    gl.shaderSource( shader, source );
-    gl.compileShader( shader );
+    const cos_theta = calculateDotProduct( v_a, v_b ) / calculateNorm( v_a ) / calculateNorm( v_b );
 
-    const success = gl.getShaderParameter( shader, gl.COMPILE_STATUS );
+    if ( isNumberEqual( cos_theta, 1 ) ) { return 0 }     // 处理共线情况
+    if ( isNumberEqual( cos_theta, - 1 ) ) { return 180 } // 处理共线情况
 
-    if ( success ) return shader;
+    const theta = Math.acos( cos_theta );
+    const z = calculateCrossProduct( v_a, v_b )[ 2 ];
 
-    const error = new Error( gl.getShaderInfoLog( shader ) );
+    if ( z < 0 ) return theta / Math.PI * 180;
+    if ( z > 0 ) return ( Math.PI * 2 - theta ) / Math.PI * 180;
 
-    gl.deleteShader( shader );
+    throw( new Error( "Error: Unexpected situation" ) );
 
-    throw error;
+    function calculateDotProduct ( v_a, v_b ) {
 
-}
+        return v_a[ 0 ] * v_b[ 0 ] + v_a[ 1 ] * v_b[ 1 ];
 
-/**
- * 创建program。
- * @param { WebGL2RenderingContext } gl - WebGL2的上下文。
- * @param { WebGLShader } vertex_shader - vertex shader。
- * @param { WebGLShader } fragment_shader - fragment shader。
- * @returns { WebGLProgram } - 若连接成功，则返回WebGLProgram实例，否则抛出一个错误。
- */
-function createProgram ( gl, vertex_shader, fragment_shader ) {
+    }
 
-    const program = gl.createProgram();
+    function calculateCrossProduct( v_a, v_b ){
 
-    gl.attachShader( program, vertex_shader );
-    gl.attachShader( program, fragment_shader );
-    gl.linkProgram( program );
+        v_a = [ ... v_a, 0 ];
+        v_b = [ ... v_b, 0 ];
 
-    const success = gl.getProgramParameter( program, gl.LINK_STATUS );
+        return [
+            v_a[ 1 ] * v_b[ 2 ] - v_b[ 1 ] * v_a[ 2 ],
+            v_b[ 0 ] * v_a[ 2 ] - v_a[ 0 ] * v_b[ 2 ],
+            v_a[ 0 ] * v_b[ 1 ] - v_b[ 0 ] * v_a[ 1 ],
+        ];
 
-    if ( success ) return program;
+    }
 
-    const error = new Error( gl.getProgramInfoLog( program ) );
+    function calculateNorm ( v ) {
 
-    gl.deleteProgram( program );
+        return Math.hypot( ... v );
 
-    throw error;
+    }
+
+    function isNumberEqual ( n_a, n_b ) {
+
+        return Math.abs( n_a - n_b ) < Number.EPSILON;
+
+    }
 
 }
 

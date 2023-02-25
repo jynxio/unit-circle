@@ -1,7 +1,7 @@
 /**
  * 自动更新<canvas>的width和height。
  * @param { HTMLCanvasElement } canvas - <canvas>。
- * @param { Function } [ handleResizeEvent ] - （可选）回调函数，它会在<canvas>更新完毕之后被执行，并接收2个入参，依次是canvas.width和canvas.height。
+ * @param { Function } [ handleResizeEvent ] - （可选）回调函数，它会在<canvas>更新完毕之后被执行，并接收<canvas>作为参数。
  */
 export default function ( canvas, handleResizeEvent ) {
 
@@ -24,10 +24,7 @@ export default function ( canvas, handleResizeEvent ) {
 
         }
 
-        const horizontal_pixel_count = canvas.width;
-        const vertical_pixel_count = canvas.height;
-
-        handleResizeEvent?.( horizontal_pixel_count, vertical_pixel_count );
+        handleResizeEvent?.( canvas );
 
     }
 
