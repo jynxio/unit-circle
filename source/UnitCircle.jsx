@@ -3,9 +3,9 @@ import * as two from "./two";
 
 import style from "./UnitCircle.module.css";
 
-import { createSignal, createEffect, onMount } from "solid-js";
+import { createSignal, createEffect, onMount, onCleanup } from "solid-js";
 
-function UnitCircle () {
+export default function () {
 
     /* ref */
     let canvas;
@@ -129,6 +129,19 @@ function UnitCircle () {
 
     } );
 
+    onMount( _ => {
+
+        /* 如果执行了下述代码，那么当用户在操纵锚的时候，浏览器就不会进行前进、后退、刷新 */
+        globalThis.addEventListener( "touchmove", handleTouchMoveEvent, { passive: false } );
+
+    } );
+
+    onCleanup( _ => {
+
+        globalThis.removeEventListener( "touchmove", handleTouchMoveEvent );
+
+    } );
+
     /* jsx */
     return (
         <div
@@ -154,12 +167,13 @@ function UnitCircle () {
                 { createX( getRadian() ) }
                 { createY( getRadian() ) }
             </section>
+            <section class={ style.overlay }></section>
         </div>
     );
 
     /* event handler */
     function handlePointerEnterEvent ( event ) {
-        console.log( event.target );
+
         is_move_enabled = false;
         is_wheel_enabled = true;
 
@@ -215,6 +229,12 @@ function UnitCircle () {
         if ( ! is_wheel_enabled ) return;
 
         setRadian( getRadian() + Math.sign( event.deltaY ) * Math.PI / 180 );
+
+    }
+
+    function handleTouchMoveEvent ( event ) {
+
+        event.preventDefault();
 
     }
 
@@ -314,5 +334,3 @@ function createXPositionStyle ( angle ) {
     return { top, left };
 
 }
-
-export default UnitCircle;

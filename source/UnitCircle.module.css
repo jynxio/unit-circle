@@ -78,6 +78,11 @@
     color: white;
     font-family: monospace;
     line-height: 1;
-    background-color: black;
+    text-shadow: 0 0 2px black;
     transform: translate( -50%, -50% );
+}
+
+/* ---------------------------------------------------------------------------------------- */
+.container > section.overlay {
+    z-index: 3;
 }

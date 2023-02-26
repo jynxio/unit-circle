@@ -1,15 +1,17 @@
 import style from "./App.module.css";
 
 import UnitCircle from "./UnitCircle";
+import Footer from "./Footer";
 
-function App () {
+export default function () {
 
     return (
-        <div class={ style.container }>
-            <UnitCircle/>
-        </div>
+        <>
+            <div class={ style.container }>
+                <UnitCircle/>
+            </div>
+            <Footer/>
+        </>
     );
 
 }
-
-export default App;
