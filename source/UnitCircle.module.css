@@ -1,12 +1,83 @@
+/* ---------------------------------------------------------------------------------------- */
 .container {
+    position: relative;
     aspect-ratio: 1 / 1;
     inline-size: 100%;
     border: 1px solid white;
+    cursor: all-scroll;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
 }
 
-.container > canvas {
+.container > section {
+    position: absolute;
+    top: 0;
+    left: 0;
+    inline-size: 100%;
+    block-size: 100%;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+.container > section > canvas {
+    z-index: 0;
     inline-size: 100%;
     block-size: 100%;
     background-color: white;
-    cursor: all-scroll;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+.container > section.axis-tag-container {
+    z-index: 1;
+}
+
+.container > section.axis-tag-container > span {
+    position: absolute;
+    aspect-ratio: 1 / 1;
+    inline-size: 1.5rem;
+    color: #666;
+    font-family: monospace;
+    line-height: 1.5rem;
+    text-align: center;
+
+}
+
+.container > section.axis-tag-container > span:nth-child( 1 ) {
+    top: 50%;
+    left: 50%;
+}
+
+.container > section.axis-tag-container > span:nth-child( 2 ) {
+    top: 50%;
+    left: 10%;
+}
+
+.container > section.axis-tag-container > span:nth-child( 3 ) {
+    top: 50%;
+    left: 90%;
+}
+
+.container > section.axis-tag-container > span:nth-child( 4 ) {
+    top: 90%;
+    left: 50%;
+}
+
+.container > section.axis-tag-container > span:nth-child( 5 ) {
+    top: 10%;
+    left: 50%;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+.container > section.coordinate-container {
+    z-index: 2;
+}
+
+.container > section.coordinate-container > p {
+    position: absolute;
+    color: white;
+    font-family: monospace;
+    line-height: 1;
+    background-color: black;
+    transform: translate( -50%, -50% );
 }

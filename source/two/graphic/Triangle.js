@@ -15,8 +15,8 @@ export default function ( { positions, color } ) {
 
     /*  */
     const colors =
-        Array.isArray( color ) ? createPureColors( positions.length / 2, [ ... color ] ) :
-        color === "diamond" ? createDiamondColors( positions.length / 2 ) :
+        Array.isArray( color ) ? createPureColors( 3, [ ... color ] ) :
+        color === "diamond" ? createDiamondColors( 3 ) :
         new Error( "遭遇非法参数" );
 
     if ( colors instanceof Error ) throw colors;
@@ -28,8 +28,8 @@ export default function ( { positions, color } ) {
     this.getColors = _ => colors;
     this.getRotation = _ => rotation;
     this.getPositions = _ => positions;
-    this.getDrawType = _ => "LINE_STRIP";
-    this.getDrawCount = _ => positions.length / 2;
+    this.getDrawType = _ => "TRIANGLES";
+    this.getDrawCount = _ => 3;
 
     this.setRotation = new_rotation => Object.assign( rotation, new_rotation );
     this.setPositions = new_positions => {
@@ -37,6 +37,17 @@ export default function ( { positions, color } ) {
         positions.length = 0;
 
         Object.assign( positions, new_positions );
+
+    };
+    this.setColor = color => {
+
+        const new_colors =
+            Array.isArray( color ) ? createPureColors( 3, [ ... color ] ) :
+            color === "diamond" ? createDiamondColors( 3 ) :
+            new Error( "遭遇非法参数" );
+
+        colors.length = 0;
+        Object.assign( colors, new_colors );
 
     };
 

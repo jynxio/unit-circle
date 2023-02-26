@@ -27,35 +27,81 @@ function UnitCircle () {
         const renderer = new two.Renderer( { canvas } );
 
         /* grid */
-        const line_1 = new two.Polyline( { positions: [ - 0.8, - 1, - 0.8, 1 ], color: [ 0, 0, 0, 0.8 ] } );
-        const line_2 = new two.Polyline( { positions: [ - 0, - 1, 0, 1 ], color: [ 0, 0, 0, 0.8 ] } );
-        const line_3 = new two.Polyline( { positions: [ 0.8, - 1, 0.8, 1 ], color: [ 0, 0, 0, 0.8 ] } );
-        const line_4 = new two.Polyline( { positions: [ - 1, - 0.8, 1, - 0.8 ], color: [ 0, 0, 0, 0.8 ] } );
-        const line_5 = new two.Polyline( { positions: [ - 1, 0, 1, 0 ], color: [ 0, 0, 0, 0.8 ] } );
-        const line_6 = new two.Polyline( { positions: [ - 1, 0.8, 1, 0.8 ], color: [ 0, 0, 0, 0.8 ] } );
+        const grid_line_1 = new two.Polyline( { positions: [ - 0.8, - 1, - 0.8, 1 ], color: [ 0.2, 0.2, 0.2, 1 ] } );
+        const grid_line_2 = new two.Polyline( { positions: [ - 0, - 1, 0, 1 ], color: [ 0.2, 0.2, 0.2, 1 ] } );
+        const grid_line_3 = new two.Polyline( { positions: [ 0.8, - 1, 0.8, 1 ], color: [ 0.2, 0.2, 0.2, 1 ] } );
+        const grid_line_4 = new two.Polyline( { positions: [ - 1, - 0.8, 1, - 0.8 ], color: [ 0.2, 0.2, 0.2, 1 ] } );
+        const grid_line_5 = new two.Polyline( { positions: [ - 1, 0, 1, 0 ], color: [ 0.2, 0.2, 0.2, 1 ] } );
+        const grid_line_6 = new two.Polyline( { positions: [ - 1, 0.8, 1, 0.8 ], color: [ 0.2, 0.2, 0.2, 1 ] } );
+
+        /* arrow */
+        const vertical_arrow_body = new two.Polyline( { positions: [ 0, 0, 0, 0.8 ], color: [ 1, 1, 1, 1 ] } );
+        const horizontal_arrow_body = new two.Polyline( { positions: [ 0, 0, 0, 0 ], color: [ 1, 1, 1, 1 ] } );
+
+        const vertical_arrow_head = new two.Triangle( { positions: [ - 0.02, 0.8 - 0.04, 0.02, 0.8 - 0.04, 0, 0.8 ], color: [ 1, 1, 1, 1 ] } );
+        const horizontal_arrow_head = new two.Triangle( { positions: [ - 0.04, 0.02, - 0.04, - 0.02, 0, 0 ], color: [ 1, 1, 1, 1 ] } );
 
         /* ring */
-        const ring = new two.Ring( { center: [ 0, 0 ], radius: 0.8, segmentCount: 256, color: [ 0, 0, 1, 0.6 ] } );
+        const ring_inside = new two.Ring( { center: [ 0, 0 ], radius: 0.8, segmentCount: 256, color: [ 0.7, 0.7, 1, 1 ] } );
+        const ring_outside = new two.Ring( { center: [ 0, 0 ], radius: 0.8 + 2 / canvas.width, segmentCount: 256, color: [ 0.7, 0.7, 1, 1 ] } );
 
         /* anchor */
         const anchor_border = new two.Ring( { center: [ 0, 0.8 ], radius: 0.065, segmentCount: 32, color: [ 1, 1, 1, 1 ] } );
         const anchor_content = new two.Circle( { center: [ 0, 0.8 ], radius: 0.065, segmentCount: 32, color: [ 0, 0, 0, 1 ] } );
 
         /* render */
-        const render = _ => renderer.render( [ anchor_content, line_1, line_2, line_3, line_4, line_5, line_6, ring, anchor_border ] );
+        const render = _ => renderer.render( [
+            anchor_content,
+            grid_line_1, grid_line_2, grid_line_3, grid_line_4, grid_line_5, grid_line_6,
+            ring_inside,
+            ring_outside,
+            horizontal_arrow_body, horizontal_arrow_head,
+            vertical_arrow_body, vertical_arrow_head,
+            anchor_border,
+        ] );
 
         /* observe */
-        updateCanvasSize( canvas, canvas => render() )
+        updateCanvasSize( canvas, canvas => {
+
+            ring_outside.setRadius( 0.8 + 2 / canvas.width ); // 如果canvas不是正方形，那么ring_outside和ring_inside就有可能会出现“质壁分离”
+
+            render();
+
+        } );
 
         /* effect */
         createEffect( _ => {
 
+            /*  */
             const radian = getRadian();
             const rotation = [ Math.sin( radian ), Math.cos( radian ) ];
 
+            /*  */
             anchor_border.setRotation( [ ... rotation ] );
             anchor_content.setRotation( [ ... rotation ] );
 
+            /*  */
+            const offset_x = rotation[ 0 ] * 0.8;
+            const offset_y = rotation[ 1 ] * 0.8;
+
+            const offset_x_sign = Math.sign( offset_x ) || 1;
+            const offset_y_sign = Math.sign( offset_y ) || 1;
+
+            vertical_arrow_head.setPositions( [
+                - 0.02 + offset_x, offset_y - 0.04 * offset_y_sign,
+                0.02 + offset_x, offset_y - 0.04 * offset_y_sign,
+                0 + offset_x, offset_y,
+            ] );
+            horizontal_arrow_head.setPositions( [
+                offset_x - 0.04 * offset_x_sign, 0.02,
+                offset_x - 0.04 * offset_x_sign, - 0.02,
+                offset_x, 0,
+            ] );
+
+            vertical_arrow_body.setPositions( [ offset_x, 0, offset_x, offset_y ] );
+            horizontal_arrow_body.setPositions( [ 0, 0, offset_x, 0 ] );
+
+            /*  */
             render();
 
         } );
@@ -75,7 +121,7 @@ function UnitCircle () {
             is_blink = ! is_blink;
             prev_time = next_time;
 
-            anchor_content.setColor( is_blink ? [ 0.1, 0.1, 0.3, 1 ] : [ 0, 0, 0, 1 ] );
+            anchor_content.setColor( is_blink ? [ 0.2, 0.2, 0.5, 1 ] : [ 0, 0, 0, 1 ] );
 
             render();
 
@@ -83,27 +129,41 @@ function UnitCircle () {
 
     } );
 
+    /* jsx */
     return (
-        <div class={ style.container }>
-            <canvas
-                ref={ canvas }
-                onWheel={ handleWheelEvent }
-                onPointerUp={ handlePointerUpEvent }
-                onPointerDown={ handlePointerDownEvent }
-                onPointerMove={ handlePointerMoveEvent }
-                onPointerEnter={ handlePointerEnterEvent }
-                onPointerLeave={ handlePointerLeaveEvent }
-            ></canvas>
+        <div
+            class={ style.container }
+            onWheel={ handleWheelEvent }
+            onPointerUp={ handlePointerUpEvent }
+            onPointerDown={ handlePointerDownEvent }
+            onPointerMove={ handlePointerMoveEvent }
+            onPointerEnter={ handlePointerEnterEvent }
+            onPointerLeave={ handlePointerLeaveEvent }
+        >
+            <section>
+                <canvas ref={ canvas }></canvas>
+            </section>
+            <section class={ style[ "axis-tag-container" ] }>
+                <span>0</span>
+                <span>-1</span>
+                <span>+1</span>
+                <span>-1</span>
+                <span>+1</span>
+            </section>
+            <section class={ style[ "coordinate-container" ] }>
+                { createX( getRadian() ) }
+                { createY( getRadian() ) }
+            </section>
         </div>
     );
 
     /* event handler */
-        function handlePointerEnterEvent () {
+    function handlePointerEnterEvent ( event ) {
+        console.log( event.target );
+        is_move_enabled = false;
+        is_wheel_enabled = true;
 
-            is_move_enabled = false;
-            is_wheel_enabled = true;
-
-        }
+    }
 
     function handlePointerLeaveEvent ( event ) {
 
@@ -141,7 +201,7 @@ function UnitCircle () {
         const vector_a = [ base_position[ 0 ] - origin_position[ 0 ], origin_position[ 1 ] - base_position[ 1 ] ];
         const vector_b = [ next_position[ 0 ] - origin_position[ 0 ], origin_position[ 1 ] - next_position[ 1 ] ];
 
-        const delta_degree = calculateClockwiseAngle( vector_a, vector_b );
+        const delta_degree = createClockwiseAngle( vector_a, vector_b );
 
         setRadian( delta_degree / 180 * Math.PI + radian_snapshot );
 
@@ -149,6 +209,7 @@ function UnitCircle () {
 
     function handleWheelEvent ( event ) {
 
+        event.preventDefault();
         event.stopPropagation();
 
         if ( ! is_wheel_enabled ) return;
@@ -165,7 +226,7 @@ function UnitCircle () {
  * @param { number[] } v_b - 如[x, y]。
  * @returns { number } - 角度，单位为度，值域为[0, 360)。
  */
-function calculateClockwiseAngle ( v_a, v_b ) {
+function createClockwiseAngle ( v_a, v_b ) {
 
     v_a = [ ... v_a ];
     v_b = [ ... v_b ];
@@ -213,6 +274,44 @@ function calculateClockwiseAngle ( v_a, v_b ) {
         return Math.abs( n_a - n_b ) < Number.EPSILON;
 
     }
+
+}
+
+function createX ( angle ) {
+
+    const bottom = "50%";
+    const left = ( Math.sin( angle ) * 0.2 + 0.5 ) * 100 + "%";
+
+    const value = Math.round( Math.sin( angle ) * 100 ) / 100;
+    const text = ( value > 0 ? "+" : "" ) + value.toFixed( 2 );
+
+    return <p style={ { bottom, left } }>{ text }</p>
+
+}
+
+function createY ( angle ) {
+
+    const bottom = ( Math.cos( angle ) * 0.2 + 0.5 ) * 100 + "%";
+    const left = ( Math.sin( angle ) * 0.4 + 0.5 ) * 100 + "%";
+
+    const value = Math.round( Math.cos( angle ) * 100 ) / 100;
+    const text = ( value > 0 ? "+" : "" ) + value.toFixed( 2 );
+
+    return <p style={ { bottom, left } }>{ text }</p>;
+
+}
+
+/**
+ * 创建position样式属性（关于x）。
+ * @param { number } angle - 角度（弧度制）。
+ * @returns { Object } - 关于position的样式对象。
+ */
+function createXPositionStyle ( angle ) {
+
+    const top = "50%";
+    const left = ( Math.sin( angle ) * 0.3 + 0.5 ) * 100 + "%";
+
+    return { top, left };
 
 }
 

@@ -49,5 +49,16 @@ export default function ( { center, radius, segmentCount, color } ) {
     this.getDrawCount = _ => positions.length / 2;
 
     this.setRotation = new_rotation => Object.assign( rotation, new_rotation );
+    this.setRadius = new_radius => {
+
+        positions.forEach( ( item, index, self ) => {
+
+            const offset = index % 2 === 0 ? center_x : center_y;
+
+            self[ index ] = ( item - offset ) / radius * new_radius + offset;
+
+        } );
+
+    };
 
 };
